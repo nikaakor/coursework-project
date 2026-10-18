@@ -184,72 +184,33 @@ classDiagram
 
 ### 2.3 Сервіси та репозиторії
 
-Роутери (`routers/*`) викликають лише сервіси; сервіси працюють із даними тільки через репозиторії (Dependency Injection у `deps.py`). Рожевим позначено Facade.
+Роутери (`routers/*`) викликають лише сервіси; сервіси працюють із даними тільки через репозиторії (Dependency Injection у `deps.py`). Рожевим позначено Facade. Щоб діаграма лишалась читабельною, залежності від конкретних репозиторіїв винесено в таблицю під нею.
 
 ```mermaid
 classDiagram
-    class Repository { +add(obj) +delete(obj) +flush() +commit() +refresh(obj) }
-    class ProductRepository
-    class PromotionRepository
-    class PharmacyRepository
-    class UserRepository
-    class PrescriptionRepository
-    class SubscriptionRepository
-    class NotificationRepository
-    class OrderRepository
-    Repository <|-- ProductRepository
-    Repository <|-- PromotionRepository
-    Repository <|-- PharmacyRepository
-    Repository <|-- UserRepository
-    Repository <|-- PrescriptionRepository
-    Repository <|-- SubscriptionRepository
-    Repository <|-- NotificationRepository
-    Repository <|-- OrderRepository
+    direction TB
+    class Repository { <<abstract>> +add(obj) +delete(obj) +flush() +commit() +refresh(obj) }
+    note for Repository "Нащадки: ProductRepository, PromotionRepository, PharmacyRepository, UserRepository, PrescriptionRepository, SubscriptionRepository, NotificationRepository, OrderRepository"
 
-    class CatalogService { +search(...) +get(id) +active_promotions() }
-    class PharmacyService { +nearest(lat, lon, need) +nearest_with_stock(product_id, lat, lon) }
-    class UserService { +register() +login() +list_prescriptions() +add_prescription() +add_subscription() }
+    class CatalogService { +search() +get() +active_promotions() }
+    class PharmacyService { +nearest() +nearest_with_stock() }
+    class UserService { +register() +login() +prescriptions() +subscriptions() }
     class NotificationService { +build(user_id, lat, lon) }
-    class OrderService { <<Facade>> +preview(req) +place(req) +history(user_id) }
-    class AdminService { +CRUD товарів, аптек, акцій +set_pharmacy_stock() +set_loyalty() +adjust_bonus() }
-    class AdminOrderService { +list(status) +change_status(order_id, target) }
-    class ReportService { +dashboard(days) }
+    class OrderService { <<Facade>> +preview() +place() +history() }
+    class AdminService { +products() +pharmacies() +promotions() +users() }
+    class AdminOrderService { +list() +change_status() }
+    class ReportService { +dashboard() }
 
-    CatalogService ..> ProductRepository
-    CatalogService ..> PromotionRepository
-    PharmacyService ..> PharmacyRepository
-    PharmacyService ..> ProductRepository
-    UserService ..> UserRepository
-    UserService ..> ProductRepository
-    UserService ..> PrescriptionRepository
-    UserService ..> SubscriptionRepository
+    CatalogService ..> Repository
+    PharmacyService ..> Repository
+    UserService ..> Repository
+    NotificationService ..> Repository
+    OrderService ..> Repository
+    AdminService ..> Repository
+    AdminOrderService ..> Repository
+    ReportService ..> Repository
     NotificationService ..> UserService
     NotificationService ..> PharmacyService
-    NotificationService ..> SubscriptionRepository
-    NotificationService ..> NotificationRepository
-    NotificationService ..> PromotionRepository
-    OrderService ..> UserRepository
-    OrderService ..> ProductRepository
-    OrderService ..> PharmacyRepository
-    OrderService ..> PromotionRepository
-    OrderService ..> PrescriptionRepository
-    OrderService ..> SubscriptionRepository
-    OrderService ..> OrderRepository
-    OrderService ..> NotificationRepository
-    AdminService ..> ProductRepository
-    AdminService ..> PharmacyRepository
-    AdminService ..> PromotionRepository
-    AdminService ..> UserRepository
-    AdminService ..> OrderRepository
-    AdminOrderService ..> OrderRepository
-    AdminOrderService ..> UserRepository
-    AdminOrderService ..> ProductRepository
-    AdminOrderService ..> PharmacyRepository
-    AdminOrderService ..> NotificationRepository
-    ReportService ..> OrderRepository
-    ReportService ..> ProductRepository
-    ReportService ..> UserRepository
-    ReportService ..> PharmacyRepository
 
     class OrderBuilder
     class OrderSubject
@@ -257,10 +218,9 @@ classDiagram
     class StateFactory { <<Simple Factory>> }
     OrderService ..> OrderBuilder : Builder
     OrderService ..> OrderSubject : Observer
-    OrderService ..> StrategyFactory
+    OrderBuilder ..> StrategyFactory : Strategy
     AdminOrderService ..> StateFactory : State
     AdminOrderService ..> OrderSubject : Observer
-    ReportService ..> StateFactory
 
     style OrderService fill:#f8bbd0,stroke:#555,color:#000
     style OrderBuilder fill:#ffe0b2,stroke:#555,color:#000
@@ -268,6 +228,17 @@ classDiagram
     style StrategyFactory fill:#d7ccc8,stroke:#555,color:#000
     style StateFactory fill:#d7ccc8,stroke:#555,color:#000
 ```
+
+| Сервіс | Репозиторії, які він використовує |
+|---|---|
+| `CatalogService` | Product, Promotion |
+| `PharmacyService` | Pharmacy, Product |
+| `UserService` | User, Product, Prescription, Subscription |
+| `NotificationService` | Subscription, Notification, Promotion (+ `UserService`, `PharmacyService`) |
+| `OrderService` (Facade) | User, Product, Pharmacy, Promotion, Prescription, Subscription, Order, Notification |
+| `AdminService` | Product, Pharmacy, Promotion, User, Order |
+| `AdminOrderService` | Order, User, Product, Pharmacy, Notification |
+| `ReportService` | Order, Product, User, Pharmacy |
 
 ## 3. GoF-шаблони
 
