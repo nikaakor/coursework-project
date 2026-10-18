@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmPlus — Адміністрування</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .nav-btn[aria-current="page"] { background: #065f46; color: #fff; }
+        .field { width: 100%; border: 1px solid #d1d5db; border-radius: .75rem; padding: .5rem .75rem; font-size: .875rem; background: #fff; }
+        .field:focus { outline: 2px solid #10b981; outline-offset: 0; border-color: #10b981; }
+        .btn { font-weight: 700; font-size: .75rem; padding: .5rem .9rem; border-radius: .75rem; transition: background .15s; }
+        .btn-primary { background: #059669; color: #fff; } .btn-primary:hover { background: #047857; }
+        .btn-light { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; } .btn-light:hover { background: #d1fae5; }
+        .btn-danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; } .btn-danger:hover { background: #fee2e2; }
+        th { text-align: left; font-weight: 600; color: #6b7280; padding: .6rem .75rem; font-size: .7rem; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+        td { padding: .6rem .75rem; border-bottom: 1px solid #f3f4f6; vertical-align: top; font-size: .8rem; }
+        tbody tr:hover { background: #f9fafb; }
+        .num { font-variant-numeric: tabular-nums; }
+        @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+
+<section id="login-screen" class="min-h-screen flex items-center justify-center px-4">
+    <div class="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 w-full max-w-sm space-y-5">
+        <div>
+            <div class="inline-flex items-center gap-1.5 bg-emerald-600 text-white font-extrabold px-3 py-1.5 rounded-xl"><span>💊</span><span>PharmPlus</span></div>
+            <h1 class="text-xl font-extrabold text-gray-900 mt-4">Вхід в адмін-панель</h1>
+            <p class="text-xs text-gray-500 mt-1">Введіть ключ адміністратора. За замовчуванням — <b>admin</b> (змінна середовища ADMIN_KEY).</p>
+        </div>
+        <div>
+            <label for="login-key" class="text-xs font-bold text-gray-700">Ключ адміністратора</label>
+            <input id="login-key" type="password" class="field mt-1" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+            <p id="login-error" class="text-xs text-red-600 mt-2 hidden"></p>
+        </div>
+        <button onclick="login()" class="btn btn-primary w-full py-3 text-sm">Увійти</button>
+        <a href="/" class="block text-center text-xs text-emerald-700 font-bold hover:underline">Повернутися на сайт</a>
+    </div>
+</section>
+
+<div id="app" class="hidden min-h-screen flex flex-col lg:flex-row">
+    <aside class="lg:w-60 lg:min-h-screen bg-white border-b lg:border-b-0 lg:border-r border-gray-200 p-4 flex lg:flex-col gap-2 lg:gap-1 overflow-x-auto flex-shrink-0">
+        <div class="hidden lg:block mb-4">
+            <div class="inline-flex items-center gap-1.5 bg-emerald-600 text-white font-extrabold px-3 py-1.5 rounded-xl"><span>💊</span><span>PharmPlus</span></div>
+            <p class="text-[11px] text-gray-400 mt-2">Адміністрування</p>
+        </div>
+        <button class="nav-btn text-left text-sm font-semibold px-3 py-2 rounded-xl hover:bg-emerald-50 whitespace-nowrap" data-tab="dashboard">📊 Огляд</button>
+        <button class="nav-btn text-left text-sm font-semibold px-3 py-2 rounded-xl hover:bg-emerald-50 whitespace-nowrap" data-tab="orders">🧾 Замовлення</button>
+        <button class="nav-btn text-left text-sm font-semibold px-3 py-2 rounded-xl hover:bg-emerald-50 whitespace-nowrap" data-tab="products">💊 Товари</button>
+        <button class="nav-btn text-left text-sm font-semibold px-3 py-2 rounded-xl hover:bg-emerald-50 whitespace-nowrap" data-tab="pharmacies">🏪 Аптеки і залишки</button>
+        <button class="nav-btn text-left text-sm font-semibold px-3 py-2 rounded-xl hover:bg-emerald-50 whitespace-nowrap" data-tab="promotions">🏷️ Акції</button>
+        <button class="nav-btn text-left text-sm font-semibold px-3 py-2 rounded-xl hover:bg-emerald-50 whitespace-nowrap" data-tab="users">👥 Клієнти</button>
+        <div class="lg:mt-auto flex lg:flex-col gap-2 lg:pt-4">
+            <a href="/" class="text-sm text-gray-600 hover:text-emerald-700 px-3 py-2 whitespace-nowrap">← На сайт</a>
+            <button onclick="logout()" class="text-left text-sm text-gray-600 hover:text-red-600 px-3 py-2 whitespace-nowrap">Вийти</button>
+        </div>
+    </aside>
+
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 min-w-0">
+        <div class="flex items-center justify-between mb-6 gap-4">
+            <h1 id="page-title" class="text-2xl font-extrabold text-gray-900"></h1>
+            <div id="page-actions" class="flex gap-2"></div>
+        </div>
+        <div id="content"></div>
+    </main>
+</div>
+
+<div id="modal" class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4" onclick="if(event.target===this)closeModal()">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="flex justify-between items-center border-b pb-3 mb-4">
+            <h2 id="modal-title" class="text-lg font-extrabold text-gray-900"></h2>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-700 font-bold" aria-label="Закрити">✕</button>
+        </div>
+        <div id="modal-body" class="space-y-3 text-xs"></div>
+    </div>
+</div>
+
+<div id="toast" class="fixed bottom-5 right-5 z-[60] hidden px-4 py-3 rounded-xl text-sm font-semibold shadow-lg"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => Number(n || 0).toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const CATEGORIES = ['Ліки', 'Вітаміни', 'Медичні вироби'];
+const LOYALTY = { regular: 'Звичайний', social: 'Соціальний', premium: 'Преміум' };
+const STATUS_STYLE = {
+    new: 'bg-blue-100 text-blue-800', processing: 'bg-amber-100 text-amber-800', shipped: 'bg-indigo-100 text-indigo-800',
+    reserved: 'bg-blue-100 text-blue-800', ready: 'bg-teal-100 text-teal-800',
+    completed: 'bg-emerald-100 text-emerald-800', cancelled: 'bg-gray-200 text-gray-600'
+};
+
+let adminKey = sessionStorage.getItem('pp_admin_key') || '';
+let currentTab = 'dashboard';
+let cache = { products: [], pharmacies: [], users: [] };
+let selectedPharmacyId = null;
+
+async function api(url, opts = {}) {
+    const res = await fetch(url, {
+        ...opts,
+        headers: { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey, ...(opts.headers || {}) }
+    });
+    let data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (res.status === 403) { logout(); throw new Error('Невірний ключ адміністратора'); }
+    if (!res.ok) {
+        const d = data && data.detail;
+        throw new Error(Array.isArray(d) ? d.map(x => `${(x.loc || []).slice(-1)[0]}: ${x.msg}`).join('; ') : (d || 'Помилка сервера'));
+    }
+    return data;
+}
+const send = (method, url, body) => api(url, { method, body: body === undefined ? undefined : JSON.stringify(body) });
+
+function toast(msg, ok = true) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.className = `fixed bottom-5 right-5 z-[60] px-4 py-3 rounded-xl text-sm font-semibold shadow-lg ${ok ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`;
+    clearTimeout(t._h); t._h = setTimeout(() => t.classList.add('hidden'), 3500);
+}
+const fail = e => toast(e.message, false);
+
+async function login() {
+    adminKey = $('login-key').value;
+    try {
+        await api('/admin/stats');
+        sessionStorage.setItem('pp_admin_key', adminKey);
+        $('login-error').classList.add('hidden');
+        enterApp();
+    } catch (e) {
+        $('login-error').textContent = 'Невірний ключ адміністратора';
+        $('login-error').classList.remove('hidden');
+        adminKey = '';
+    }
+}
+function logout() {
+    sessionStorage.removeItem('pp_admin_key'); adminKey = '';
+    $('app').classList.add('hidden'); $('login-screen').classList.remove('hidden');
+    $('login-key').value = '';
+}
+function enterApp() {
+    $('login-screen').classList.add('hidden'); $('app').classList.remove('hidden');
+    showTab(location.hash.slice(1) || 'dashboard');
+}
+
+const TABS = {
+    dashboard: ['Огляд', renderDashboard], orders: ['Замовлення', renderOrders], products: ['Товари', renderProducts],
+    pharmacies: ['Аптеки і залишки', renderPharmacies], promotions: ['Акції', renderPromotions], users: ['Клієнти', renderUsers]
+};
+async function showTab(tab) {
+    if (!TABS[tab]) tab = 'dashboard';
+    currentTab = tab; location.hash = tab;
+    document.querySelectorAll('.nav-btn').forEach(b => b.dataset.tab === tab ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+    $('page-title').textContent = TABS[tab][0];
+    $('page-actions').innerHTML = '';
+    $('content').innerHTML = '<p class="text-sm text-gray-400">Завантаження…</p>';
+    try { await TABS[tab][1](); } catch (e) { $('content').innerHTML = `<p class="text-sm text-red-600">${esc(e.message)}</p>`; }
+}
+document.querySelectorAll('.nav-btn').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+const reload = () => showTab(currentTab);
+
+function openModal(title, html) {
+    $('modal-title').textContent = title; $('modal-body').innerHTML = html;
+    $('modal').classList.remove('hidden'); $('modal').classList.add('flex');
+}
+function closeModal() { $('modal').classList.add('hidden'); $('modal').classList.remove('flex'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+const card = (inner, cls = '') => `<div class="bg-white rounded-2xl border border-gray-200 shadow-sm ${cls}">${inner}</div>`;
+const tableWrap = html => card(`<div class="overflow-x-auto"><table class="w-full">${html}</table></div>`);
+const empty = text => card(`<p class="p-8 text-center text-sm text-gray-400">${text}</p>`);
+const badge = (status, label) => `<span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${STATUS_STYLE[status] || ''}">${esc(label)}</span>`;
+const label = (text, input) => `<label class="block"><span class="font-bold text-gray-700">${text}</span>${input}</label>`;
+
+async function renderDashboard() {
+    const d = await api('/admin/stats');
+    const t = d.totals;
+    const stat = (title, value, hint = '') => card(`<div class="p-4"><p class="text-xs text-gray-500">${title}</p><p class="text-2xl font-extrabold text-gray-900 mt-1 num">${value}</p><p class="text-[11px] text-gray-400 mt-0.5">${hint}</p></div>`);
+    const maxRev = Math.max(...d.revenue_by_day.map(x => x.revenue), 1);
+    const bars = d.revenue_by_day.map(x => `
+        <div class="flex-1 flex flex-col items-center gap-1 min-w-0" title="${x.date}: ${money(x.revenue)} грн">
+            <div class="w-full flex items-end h-28"><div class="w-full rounded-t bg-emerald-500" style="height:${Math.max(x.revenue / maxRev * 100, x.revenue ? 4 : 0)}%"></div></div>
+            <span class="text-[9px] text-gray-400">${x.date}</span>
+        </div>`).join('');
+    const maxStatus = Math.max(...d.orders_by_status.map(s => s.count), 1);
+
+    $('content').innerHTML = `
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        ${stat('Виручка', money(t.revenue) + ' грн', 'без скасованих')}
+        ${stat('Замовлень', t.orders, `у роботі: ${t.active_orders}`)}
+        ${stat('Середній чек', money(t.avg_check) + ' грн')}
+        ${stat('Клієнтів', t.users, `${t.products} товарів, ${t.pharmacies} аптек`)}
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        ${card(`<div class="p-4"><h3 class="font-extrabold text-sm mb-3">Виручка за 14 днів</h3><div class="flex gap-1">${bars}</div></div>`, 'lg:col-span-2')}
+        ${card(`<div class="p-4"><h3 class="font-extrabold text-sm mb-3">Замовлення за статусами</h3><div class="space-y-2">${d.orders_by_status.map(s => `
+            <div><div class="flex justify-between text-xs mb-0.5"><span>${esc(s.label)}</span><span class="font-bold num">${s.count}</span></div>
+            <div class="h-1.5 bg-gray-100 rounded"><div class="h-1.5 rounded bg-emerald-500" style="width:${s.count / maxStatus * 100}%"></div></div></div>`).join('')}</div></div>`)}
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        ${card(`<div class="p-4"><h3 class="font-extrabold text-sm mb-3">Найпопулярніші товари</h3>${d.top_products.length ? `<ol class="space-y-2 text-xs">${d.top_products.map(p => `
+            <li class="flex justify-between gap-3"><span class="truncate">${esc(p.name)}</span><span class="text-gray-500 whitespace-nowrap num">${p.quantity} шт. · ${money(p.revenue)} грн</span></li>`).join('')}</ol>` : '<p class="text-xs text-gray-400">Ще немає продажів</p>'}</div>`)}
+        ${card(`<div class="p-4"><h3 class="font-extrabold text-sm mb-3">Закінчується на онлайн-складі</h3>${d.low_stock.length ? `<ul class="space-y-2 text-xs">${d.low_stock.map(p => `
+            <li class="flex justify-between gap-3"><span class="truncate">${esc(p.name)}</span><span class="font-bold num ${p.quantity === 0 ? 'text-red-600' : 'text-amber-600'}">${p.quantity === 0 ? 'немає' : p.quantity + ' шт.'}</span></li>`).join('')}</ul>` : '<p class="text-xs text-gray-400">Усього достатньо</p>'}</div>`)}
+        ${card(`<div class="p-4"><h3 class="font-extrabold text-sm mb-3">Клієнти за категоріями</h3><ul class="space-y-2 text-xs">${d.loyalty.map(l => `
+            <li class="flex justify-between"><span>${esc(l.label)}</span><span class="font-bold num">${l.count}</span></li>`).join('')}</ul></div>`)}
+    </div>`;
+}
+
+let orderFilter = '';
+async function renderOrders() {
+    const orders = await api('/admin/orders/' + (orderFilter ? `?status=${orderFilter}` : ''));
+    const opts = [['', 'Усі статуси'], ['new', 'Нові'], ['processing', 'Комплектуються'], ['shipped', 'Передані кур\'єру'], ['reserved', 'Заброньовані'], ['ready', 'Готові до видачі'], ['completed', 'Виконані'], ['cancelled', 'Скасовані']];
+    $('page-actions').innerHTML = `<select class="field !w-auto" onchange="orderFilter=this.value;reload()" aria-label="Фільтр за статусом">${opts.map(([v, l]) => `<option value="${v}" ${v === orderFilter ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+    if (!orders.length) { $('content').innerHTML = empty('Замовлень із таким статусом немає'); return; }
+    $('content').innerHTML = tableWrap(`
+        <thead><tr><th>№</th><th>Дата</th><th>Клієнт</th><th>Отримання</th><th>Склад замовлення</th><th class="text-right">Сума</th><th>Статус</th><th>Дії</th></tr></thead>
+        <tbody>${orders.map(o => `<tr>
+            <td class="font-bold num">${o.id}</td>
+            <td class="whitespace-nowrap text-gray-500">${esc(o.created_at)}</td>
+            <td><div class="font-semibold">${esc(o.user_name)}</div><div class="text-gray-400 text-[11px]">${esc(o.user_email)}</div></td>
+            <td class="text-xs">${o.delivery_type === 'courier' ? '📦 Кур\'єр<br><span class="text-gray-500">' + esc(o.address) + '</span>' : '🏪 Самовивіз<br><span class="text-gray-500">' + esc(o.pharmacy) + '</span>'}</td>
+            <td class="text-xs">${o.items.map(i => `${esc(i.name)} × ${i.quantity}`).join('<br>')}</td>
+            <td class="text-right font-bold num whitespace-nowrap">${money(o.total_price)} грн</td>
+            <td>${badge(o.status, o.status_label)}</td>
+            <td><div class="flex flex-wrap gap-1">${o.next_statuses.length ? o.next_statuses.map(s => `
+                <button class="btn ${s.status === 'cancelled' ? 'btn-danger' : 'btn-light'}" onclick="changeOrderStatus(${o.id}, '${s.status}')">${s.status === 'cancelled' ? 'Скасувати' : '→ ' + esc(s.label)}</button>`).join('') : '<span class="text-gray-300">—</span>'}</div></td>
+        </tr>`).join('')}</tbody>`);
+}
+async function changeOrderStatus(id, status) {
+    if (status === 'cancelled' && !confirm(`Скасувати замовлення №${id}? Товар повернеться на залишки, бонуси клієнта буде скориговано.`)) return;
+    try { const r = await send('PUT', `/admin/orders/${id}/status`, { status }); toast(r.message); reload(); } catch (e) { fail(e); }
+}
+
+let productQuery = '';
+async function renderProducts() {
+    cache.products = await api('/admin/products/');
+    $('page-actions').innerHTML = `<input class="field !w-56" placeholder="Пошук товару…" value="${esc(productQuery)}" oninput="productQuery=this.value;drawProducts()" aria-label="Пошук"><button class="btn btn-primary" onclick="openProductForm()">+ Додати товар</button>`;
+    drawProducts();
+}
+function drawProducts() {
+    const q = productQuery.trim().toLowerCase();
+    const list = cache.products.filter(p => !q || [p.name, p.manufacturer, p.category].some(v => (v || '').toLowerCase().includes(q)));
+    if (!list.length) { $('content').innerHTML = empty('Товарів не знайдено'); return; }
+    $('content').innerHTML = tableWrap(`
+        <thead><tr><th>ID</th><th>Назва</th><th>Категорія</th><th class="text-right">Ціна</th><th class="text-right">Онлайн-склад</th><th class="text-right">В аптеках</th><th class="text-right">Продано</th><th>Прапори</th><th></th></tr></thead>
+        <tbody>${list.map(p => `<tr>
+            <td class="num text-gray-400">${p.id}</td>
+            <td><div class="font-semibold">${esc(p.name)}</div><div class="text-gray-400 text-[11px]">${esc(p.manufacturer)}</div></td>
+            <td>${esc(p.category)}</td>
+            <td class="text-right num whitespace-nowrap">${p.promo_percent ? `<span class="line-through text-gray-400">${money(p.price)}</span><br><b class="text-red-600">${money(p.final_price)}</b>` : money(p.price)}</td>
+            <td class="text-right num ${p.stock_quantity === 0 ? 'text-red-600 font-bold' : ''}">${p.stock_quantity}</td>
+            <td class="text-right num">${p.pharmacy_stock_total}</td>
+            <td class="text-right num">${p.sold}</td>
+            <td class="text-[11px]">${p.is_prescription ? badge('shipped', 'Рецепт') : ''} ${p.is_social ? badge('ready', 'Соц.') : ''}</td>
+            <td><div class="flex gap-1"><button class="btn btn-light" onclick="openProductForm(${p.id})">Змінити</button><button class="btn btn-danger" onclick="deleteProduct(${p.id})">Видалити</button></div></td>
+        </tr>`).join('')}</tbody>`);
+}
+function openProductForm(id) {
+    const p = id ? cache.products.find(x => x.id === id) : { category: 'Ліки', stock_quantity: 20, form_type: 'Таблетки' };
+    const inp = (f, type = 'text', extra = '') => `<input id="pf-${f}" type="${type}" class="field mt-1" value="${esc(p[f] ?? '')}" ${extra}>`;
+    openModal(id ? `Редагувати товар #${id}` : 'Новий товар', `
+        ${label('Назва', inp('name'))}
+        <div class="grid grid-cols-2 gap-2">
+            ${label('Категорія', `<select id="pf-category" class="field mt-1">${CATEGORIES.map(c => `<option ${c === p.category ? 'selected' : ''}>${c}</option>`).join('')}</select>`)}
+            ${label('Форма випуску', inp('form_type'))}
+        </div>
+        <div class="grid grid-cols-2 gap-2">${label('Виробник', inp('manufacturer'))}${label('Ціна, грн', inp('price', 'number', 'step="0.01" min="0"'))}</div>
+        ${label('Діюча речовина', inp('active_ingredient'))}
+        ${label('Опис', `<textarea id="pf-description" class="field mt-1 h-16">${esc(p.description)}</textarea>`)}
+        ${label('Дозування / застосування', inp('dosage_info'))}
+        ${label('Посилання на зображення (необов\'язково)', inp('image_url'))}
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-1">
+            <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="pf-is_prescription" ${p.is_prescription ? 'checked' : ''}> За рецептом</label>
+            <label class="flex items-center gap-2 font-bold"><input type="checkbox" id="pf-is_social" ${p.is_social ? 'checked' : ''}> Соціальна знижка</label>
+            <label class="flex items-center gap-2 font-bold">Онлайн-склад: <input id="pf-stock_quantity" type="number" min="0" class="field !w-20 text-center" value="${p.stock_quantity ?? 0}"></label>
+        </div>
+        <button class="btn btn-primary w-full !py-3 !text-sm mt-2" onclick="saveProduct(${id || 'null'})">${id ? 'Зберегти зміни' : 'Додати товар'}</button>`);
+}
+async function saveProduct(id) {
+    const v = f => $('pf-' + f).value;
+    const body = {
+        name: v('name'), category: v('category'), manufacturer: v('manufacturer'), price: parseFloat(v('price')),
+        form_type: v('form_type'), active_ingredient: v('active_ingredient'), description: v('description'),
+        dosage_info: v('dosage_info'), image_url: v('image_url'),
+        is_prescription: $('pf-is_prescription').checked, is_social: $('pf-is_social').checked,
+        stock_quantity: parseInt(v('stock_quantity'), 10) || 0
+    };
+    try {
+        const r = id ? await send('PUT', `/admin/products/${id}`, body) : await send('POST', '/admin/products/', body);
+        toast(r.message); closeModal(); reload();
+    } catch (e) { fail(e); }
+}
+async function deleteProduct(id) {
+    const p = cache.products.find(x => x.id === id);
+    if (!confirm(`Видалити «${p.name}»? Також буде видалено його залишки в аптеках, акції та підписки.`)) return;
+    try { toast((await send('DELETE', `/admin/products/${id}`)).message); reload(); } catch (e) { fail(e); }
+}
+
+async function renderPharmacies() {
+    cache.pharmacies = await api('/admin/pharmacies/');
+    $('page-actions').innerHTML = `<button class="btn btn-primary" onclick="openPharmacyForm()">+ Додати аптеку</button>`;
+    if (!cache.pharmacies.length) { $('content').innerHTML = empty('Аптек ще немає. Додайте першу.'); return; }
+    if (!cache.pharmacies.some(p => p.id === selectedPharmacyId)) selectedPharmacyId = cache.pharmacies[0].id;
+    const stock = await api(`/admin/pharmacies/${selectedPharmacyId}/stock`);
+    const ph = cache.pharmacies.find(p => p.id === selectedPharmacyId);
+    $('content').innerHTML = `
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="space-y-2">${cache.pharmacies.map(p => `
+            <button onclick="selectedPharmacyId=${p.id};reload()" class="w-full text-left p-3 rounded-2xl border-2 transition ${p.id === selectedPharmacyId ? 'border-emerald-600 bg-emerald-50' : 'border-transparent bg-white hover:border-emerald-200'} shadow-sm">
+                <div class="font-bold text-sm">${esc(p.name)}</div><div class="text-xs text-gray-500">${esc(p.address)}</div>
+                <div class="text-[11px] text-gray-400 mt-1">Одиниць на залишку: ${p.stock_total}</div>
+            </button>`).join('')}</div>
+        <div class="lg:col-span-2 space-y-3">
+            ${card(`<div class="p-4 flex flex-wrap items-center justify-between gap-2"><div><div class="font-extrabold">${esc(ph.name)}</div><div class="text-xs text-gray-500">${esc(ph.address)} · ${ph.lat}, ${ph.lon}</div></div>
+                <div class="flex gap-1"><button class="btn btn-light" onclick="openPharmacyForm(${ph.id})">Змінити</button><button class="btn btn-danger" onclick="deletePharmacy(${ph.id})">Видалити</button></div></div>`)}
+            ${tableWrap(`<thead><tr><th>Товар</th><th>Категорія</th><th class="text-right">Залишок</th><th></th></tr></thead>
+                <tbody>${stock.map(s => `<tr>
+                    <td class="font-semibold">${esc(s.name)}</td><td class="text-gray-500">${esc(s.category)}</td>
+                    <td class="text-right"><input id="st-${s.product_id}" type="number" min="0" value="${s.quantity}" class="field !w-20 !py-1 text-center" onkeydown="if(event.key==='Enter')saveStock(${s.product_id})"></td>
+                    <td><button class="btn btn-light" onclick="saveStock(${s.product_id})">Зберегти</button></td></tr>`).join('')}</tbody>`)}
+        </div>
+    </div>`;
+}
+async function saveStock(productId) {
+    const quantity = parseInt($('st-' + productId).value, 10);
+    if (isNaN(quantity) || quantity < 0) return toast('Вкажіть невід\'ємну кількість', false);
+    try { await send('PUT', `/admin/pharmacies/${selectedPharmacyId}/stock`, { product_id: productId, quantity }); toast('Залишок оновлено'); } catch (e) { fail(e); }
+}
+function openPharmacyForm(id) {
+    const p = id ? cache.pharmacies.find(x => x.id === id) : { lat: 49.8419, lon: 24.0315 };
+    const inp = (f, type = 'text', extra = '') => `<input id="ph-${f}" type="${type}" class="field mt-1" value="${esc(p[f] ?? '')}" ${extra}>`;
+    openModal(id ? 'Редагувати аптеку' : 'Нова аптека', `
+        ${label('Назва', inp('name'))}${label('Адреса', inp('address'))}
+        <div class="grid grid-cols-2 gap-2">${label('Широта', inp('lat', 'number', 'step="any"'))}${label('Довгота', inp('lon', 'number', 'step="any"'))}</div>
+        <p class="text-gray-400">Координати потрібні для пошуку найближчої аптеки.</p>
+        <button class="btn btn-primary w-full !py-3 !text-sm" onclick="savePharmacy(${id || 'null'})">${id ? 'Зберегти' : 'Додати аптеку'}</button>`);
+}
+async function savePharmacy(id) {
+    const body = { name: $('ph-name').value, address: $('ph-address').value, lat: parseFloat($('ph-lat').value), lon: parseFloat($('ph-lon').value) };
+    try {
+        const r = id ? await send('PUT', `/admin/pharmacies/${id}`, body) : await send('POST', '/admin/pharmacies/', body);
+        if (!id) selectedPharmacyId = r.id;
+        toast(r.message); closeModal(); reload();
+    } catch (e) { fail(e); }
+}
+async function deletePharmacy(id) {
+    if (!confirm('Видалити аптеку разом із її залишками?')) return;
+    try { toast((await send('DELETE', `/admin/pharmacies/${id}`)).message); selectedPharmacyId = null; reload(); } catch (e) { fail(e); }
+}
+
+async function renderPromotions() {
+    const [promos, products] = await Promise.all([api('/admin/promotions/'), api('/admin/products/')]);
+    cache.products = products;
+    $('page-actions').innerHTML = `<button class="btn btn-primary" onclick="openPromoForm()">+ Нова акція</button>`;
+    if (!promos.length) { $('content').innerHTML = empty('Акцій ще немає'); return; }
+    $('content').innerHTML = tableWrap(`
+        <thead><tr><th>Назва</th><th>Діє на</th><th class="text-right">Знижка</th><th>Період</th><th>Стан</th><th></th></tr></thead>
+        <tbody>${promos.map(p => `<tr>
+            <td><div class="font-semibold">${esc(p.title)}</div><div class="text-gray-400 text-[11px]">${esc(p.description)}</div></td>
+            <td>${p.product_name ? esc(p.product_name) : (p.category ? 'Категорія: ' + esc(p.category) : 'Увесь асортимент')}</td>
+            <td class="text-right font-bold num">−${p.discount_percent}%</td>
+            <td class="whitespace-nowrap text-gray-500">${p.date_from} — ${p.date_to}</td>
+            <td>${p.is_active ? badge('completed', 'Діє') : badge('cancelled', 'Не діє')}</td>
+            <td><button class="btn btn-danger" onclick="deletePromo(${p.id})">Видалити</button></td>
+        </tr>`).join('')}</tbody>`);
+}
+function openPromoForm() {
+    const iso = d => d.toISOString().slice(0, 10), today = new Date(), end = new Date(Date.now() + 14 * 864e5);
+    openModal('Нова акція', `
+        ${label('Назва', '<input id="pr-title" class="field mt-1" placeholder="Напр.: Тиждень вітамінів">')}
+        ${label('Опис для клієнтів', '<input id="pr-desc" class="field mt-1" placeholder="Усі вітаміни -20%">')}
+        ${label('Знижка, %', '<input id="pr-percent" type="number" min="1" max="90" class="field mt-1" value="10">')}
+        ${label('На що діє', `<select id="pr-target" class="field mt-1" onchange="$('pr-cat-wrap').classList.toggle('hidden',this.value!=='category');$('pr-prod-wrap').classList.toggle('hidden',this.value!=='product')">
+            <option value="all">Увесь асортимент</option><option value="category">Категорія</option><option value="product">Окремий товар</option></select>`)}
+        <div id="pr-cat-wrap" class="hidden">${label('Категорія', `<select id="pr-cat" class="field mt-1">${CATEGORIES.map(c => `<option>${c}</option>`).join('')}</select>`)}</div>
+        <div id="pr-prod-wrap" class="hidden">${label('Товар', `<select id="pr-prod" class="field mt-1">${cache.products.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`)}</div>
+        <div class="grid grid-cols-2 gap-2">${label('Початок', `<input id="pr-from" type="date" class="field mt-1" value="${iso(today)}">`)}${label('Кінець', `<input id="pr-to" type="date" class="field mt-1" value="${iso(end)}">`)}</div>
+        <button class="btn btn-primary w-full !py-3 !text-sm" onclick="savePromo()">Створити акцію</button>`);
+}
+async function savePromo() {
+    const target = $('pr-target').value;
+    const body = {
+        title: $('pr-title').value, description: $('pr-desc').value, discount_percent: parseFloat($('pr-percent').value),
+        category: target === 'category' ? $('pr-cat').value : null,
+        product_id: target === 'product' ? parseInt($('pr-prod').value, 10) : null,
+        date_from: $('pr-from').value, date_to: $('pr-to').value
+    };
+    try { toast((await send('POST', '/admin/promotions/', body)).message); closeModal(); reload(); } catch (e) { fail(e); }
+}
+async function deletePromo(id) {
+    if (!confirm('Видалити акцію?')) return;
+    try { toast((await send('DELETE', `/admin/promotions/${id}`)).message); reload(); } catch (e) { fail(e); }
+}
+
+async function renderUsers() {
+    const users = cache.users = await api('/admin/users/');
+    if (!users.length) { $('content').innerHTML = empty('Клієнтів ще немає'); return; }
+    $('content').innerHTML = tableWrap(`
+        <thead><tr><th>ID</th><th>Клієнт</th><th>Категорія</th><th class="text-right">Бонуси</th><th class="text-right">Замовлень</th><th class="text-right">Куплено на</th><th></th></tr></thead>
+        <tbody>${users.map(u => `<tr>
+            <td class="num text-gray-400">${u.id}</td>
+            <td><div class="font-semibold">${esc(u.name)}</div><div class="text-gray-400 text-[11px]">${esc(u.email)}</div></td>
+            <td><select class="field !w-auto !py-1" onchange="setLoyalty(${u.id}, this.value)" aria-label="Категорія клієнта ${esc(u.name)}">
+                ${Object.entries(LOYALTY).map(([k, l]) => `<option value="${k}" ${k === u.loyalty_type ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
+            <td class="text-right font-bold num">${money(u.bonus_points)}</td>
+            <td class="text-right num">${u.orders_count}</td>
+            <td class="text-right num whitespace-nowrap">${money(u.orders_total)} грн</td>
+            <td><button class="btn btn-light" onclick="adjustBonus(${u.id})">± Бонуси</button></td>
+        </tr>`).join('')}</tbody>`);
+}
+async function setLoyalty(id, loyalty_type) {
+    try { await send('PUT', `/admin/users/${id}/loyalty`, { loyalty_type }); toast('Категорію клієнта змінено'); } catch (e) { fail(e); reload(); }
+}
+async function adjustBonus(id) {
+    const name = cache.users.find(u => u.id === id).name;
+    const raw = prompt(`Змінити баланс бонусів клієнта ${name}.\nВведіть число: +50 нарахувати, -20 списати.`);
+    if (raw === null) return;
+    const delta = parseFloat(raw.replace(',', '.'));
+    if (isNaN(delta)) return toast('Введіть число', false);
+    try { await send('POST', `/admin/users/${id}/bonus`, { delta }); toast('Баланс бонусів оновлено'); reload(); } catch (e) { fail(e); }
+}
+
+if (adminKey) api('/admin/stats').then(enterApp).catch(() => {});
+</script>
+</body>
+</html>
