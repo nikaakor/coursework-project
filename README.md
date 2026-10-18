@@ -1,16 +1,17 @@
 # Інформаційна система «Інтернет-аптека» PharmPlus (Варіант 5)
 
-FastAPI + SQLAlchemy + SQLite, фронтенд — один файл `static/index.html` (Tailwind CDN).
+FastAPI + SQLAlchemy + SQLite, фронтенд — `frontend/index.html` (вітрина) та `frontend/admin.html` (адмін-панель), Tailwind CDN.
 
 ## Запуск
 
 ```bash
+cd backend
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
 Відкрийте http://127.0.0.1:8000 (Swagger: http://127.0.0.1:8000/docs).
-Під час першого запуску створюється `pharmacy.db` з демо-даними. Якщо у вас лишився старий `pharmacy.db` —
+Під час першого запуску створюється `database/pharmacy.db` з демо-даними. Якщо у вас лишився старий `pharmacy.db` —
 видаліть його перед запуском (змінилася схема таблиць).
 
 ## Адмін-панель
@@ -57,13 +58,17 @@ uvicorn main:app --reload
 
 ## Структура
 ```
-main.py            точка входу (збирає роутери, lifespan, обробник помилок)
-routers/           HTTP-шар: catalog, users, orders, pharmacies, admin
-services/          бізнес-логіка: OrderService (Facade), CatalogService, UserService, NotificationService,
-                   AdminService, AdminOrderService (State), ReportService (дашборд)
-repositories/      доступ до БД (Repository)
-patterns.py        Strategy, Builder, Observer, Factory
-models.py          ORM-моделі          schemas.py   DTO (pydantic)
-deps.py            Dependency Injection  exceptions.py / config.py / database.py / seed.py
-static/index.html  вітрина      static/admin.html  адмін-панель        docs/ANALYSIS.md  діаграми та аналіз
+backend/
+  main.py            точка входу (збирає роутери, lifespan, обробник помилок)
+  routers/           HTTP-шар (контролери): catalog, users, orders, pharmacies, admin
+  services/          бізнес-логіка: OrderService (Facade), CatalogService, UserService, NotificationService,
+                     AdminService, AdminOrderService (State), ReportService (дашборд)
+  repositories/      доступ до БД (Repository)
+  patterns.py        Strategy, Builder, Observer, State, Factory
+  models.py          ORM-моделі          schemas.py   DTO (pydantic)
+  deps.py            Dependency Injection  exceptions.py / config.py / database.py / seed.py
+frontend/
+  index.html         вітрина             admin.html   адмін-панель (/admin-panel)
+database/            pharmacy.db (створюється автоматично, не в git)
+docs/ANALYSIS.md     Use Case, діаграми класів, патерни, архітектура
 ```
