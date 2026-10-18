@@ -64,6 +64,10 @@ flowchart LR
 
 ## 2. Діаграма класів
 
+Діаграму розбито на три частини, щоб її можна було прочитати: (2.1) сутності предметної області, (2.2) GoF-патерни, (2.3) шари сервісів і репозиторіїв. Разом вони складають діаграму класів системи в цілому.
+
+### 2.1 Сутності предметної області
+
 ```mermaid
 classDiagram
     class User { +id +name +email +loyalty_type +bonus_points }
@@ -89,18 +93,43 @@ classDiagram
     Pharmacy "1" --> "*" PharmacyStock
     Product "1" --> "*" PharmacyStock
     Promotion "*" ..> "0..1" Product
+```
 
-    class LoyaltyStrategy { <<abstract>> +bonus_rate +free_delivery +discount_rate(product) }
+### 2.2 GoF-патерни (кольорами позначено патерни)
+
+| Колір | Патерн |
+|---|---|
+| жовтий | Strategy |
+| помаранчевий | Builder |
+| зелений | Observer |
+| блакитний | State |
+| коричневий | Simple Factory |
+| рожевий | Facade |
+
+```mermaid
+classDiagram
+    %% ── Strategy: категорії клієнтів ──
+    class LoyaltyStrategy { <<abstract>> +label +bonus_rate +free_delivery +discount_rate(product) }
     class RegularDiscount
     class SocialDiscount
     class PremiumDiscount
     LoyaltyStrategy <|-- RegularDiscount
     LoyaltyStrategy <|-- SocialDiscount
     LoyaltyStrategy <|-- PremiumDiscount
-    class OrderBuilder { +set_user() +set_delivery() +add_item() +use_bonuses() +get_result() }
-    OrderBuilder ..> LoyaltyStrategy
-    class OrderSubject { +attach(observer) +notify(msg) }
-    class NotificationObserver { <<abstract>> +update(msg) }
+
+    %% ── Simple Factory ──
+    class StrategyFactory { <<Simple Factory>> +get_strategy(loyalty_type) LoyaltyStrategy }
+    class StateFactory { <<Simple Factory>> +get_state(status) OrderState }
+    StrategyFactory ..> LoyaltyStrategy : створює
+    StateFactory ..> OrderState : створює
+
+    %% ── Builder ──
+    class OrderBuilder { +set_user(user) +set_delivery(type, pharmacy, address) +add_item(product, qty, rate) +use_bonuses(amount) +get_result() }
+    OrderBuilder ..> LoyaltyStrategy : розрахунок знижок і бонусів
+
+    %% ── Observer ──
+    class OrderSubject { +attach(observer) +notify(message) }
+    class NotificationObserver { <<abstract>> +update(message, kind) }
     class DbNotifier
     class EmailNotifier
     class SmsNotifier
@@ -108,6 +137,136 @@ classDiagram
     NotificationObserver <|-- EmailNotifier
     NotificationObserver <|-- SmsNotifier
     OrderSubject o-- NotificationObserver
+
+    %% ── State: життєвий цикл замовлення ──
+    class OrderState { <<abstract>> +name +label +next_states +can_move_to(target) +is_final }
+    class NewState
+    class ProcessingState
+    class ShippedState
+    class ReservedState
+    class ReadyState
+    class CompletedState
+    class CancelledState
+    OrderState <|-- NewState
+    OrderState <|-- ProcessingState
+    OrderState <|-- ShippedState
+    OrderState <|-- ReservedState
+    OrderState <|-- ReadyState
+    OrderState <|-- CompletedState
+    OrderState <|-- CancelledState
+
+    class Order { +status }
+    Order ..> OrderState : status визначає стан
+
+    style LoyaltyStrategy fill:#fff9c4,stroke:#555,color:#000
+    style RegularDiscount fill:#fff9c4,stroke:#555,color:#000
+    style SocialDiscount fill:#fff9c4,stroke:#555,color:#000
+    style PremiumDiscount fill:#fff9c4,stroke:#555,color:#000
+    style StrategyFactory fill:#d7ccc8,stroke:#555,color:#000
+    style StateFactory fill:#d7ccc8,stroke:#555,color:#000
+    style OrderBuilder fill:#ffe0b2,stroke:#555,color:#000
+    style OrderSubject fill:#c8e6c9,stroke:#555,color:#000
+    style NotificationObserver fill:#c8e6c9,stroke:#555,color:#000
+    style DbNotifier fill:#c8e6c9,stroke:#555,color:#000
+    style EmailNotifier fill:#c8e6c9,stroke:#555,color:#000
+    style SmsNotifier fill:#c8e6c9,stroke:#555,color:#000
+    style OrderState fill:#bbdefb,stroke:#555,color:#000
+    style NewState fill:#bbdefb,stroke:#555,color:#000
+    style ProcessingState fill:#bbdefb,stroke:#555,color:#000
+    style ShippedState fill:#bbdefb,stroke:#555,color:#000
+    style ReservedState fill:#bbdefb,stroke:#555,color:#000
+    style ReadyState fill:#bbdefb,stroke:#555,color:#000
+    style CompletedState fill:#bbdefb,stroke:#555,color:#000
+    style CancelledState fill:#bbdefb,stroke:#555,color:#000
+```
+
+Функції `get_strategy` і `get_state` у коді є функціями модуля `patterns.py`; на діаграмі вони показані як класи-фабрики для наочності.
+
+### 2.3 Сервіси та репозиторії
+
+Роутери (`routers/*`) викликають лише сервіси; сервіси працюють із даними тільки через репозиторії (Dependency Injection у `deps.py`). Рожевим позначено Facade.
+
+```mermaid
+classDiagram
+    class Repository { +add(obj) +delete(obj) +flush() +commit() +refresh(obj) }
+    class ProductRepository
+    class PromotionRepository
+    class PharmacyRepository
+    class UserRepository
+    class PrescriptionRepository
+    class SubscriptionRepository
+    class NotificationRepository
+    class OrderRepository
+    Repository <|-- ProductRepository
+    Repository <|-- PromotionRepository
+    Repository <|-- PharmacyRepository
+    Repository <|-- UserRepository
+    Repository <|-- PrescriptionRepository
+    Repository <|-- SubscriptionRepository
+    Repository <|-- NotificationRepository
+    Repository <|-- OrderRepository
+
+    class CatalogService { +search(...) +get(id) +active_promotions() }
+    class PharmacyService { +nearest(lat, lon, need) +nearest_with_stock(product_id, lat, lon) }
+    class UserService { +register() +login() +list_prescriptions() +add_prescription() +add_subscription() }
+    class NotificationService { +build(user_id, lat, lon) }
+    class OrderService { <<Facade>> +preview(req) +place(req) +history(user_id) }
+    class AdminService { +CRUD товарів, аптек, акцій +set_pharmacy_stock() +set_loyalty() +adjust_bonus() }
+    class AdminOrderService { +list(status) +change_status(order_id, target) }
+    class ReportService { +dashboard(days) }
+
+    CatalogService ..> ProductRepository
+    CatalogService ..> PromotionRepository
+    PharmacyService ..> PharmacyRepository
+    PharmacyService ..> ProductRepository
+    UserService ..> UserRepository
+    UserService ..> ProductRepository
+    UserService ..> PrescriptionRepository
+    UserService ..> SubscriptionRepository
+    NotificationService ..> UserService
+    NotificationService ..> PharmacyService
+    NotificationService ..> SubscriptionRepository
+    NotificationService ..> NotificationRepository
+    NotificationService ..> PromotionRepository
+    OrderService ..> UserRepository
+    OrderService ..> ProductRepository
+    OrderService ..> PharmacyRepository
+    OrderService ..> PromotionRepository
+    OrderService ..> PrescriptionRepository
+    OrderService ..> SubscriptionRepository
+    OrderService ..> OrderRepository
+    OrderService ..> NotificationRepository
+    AdminService ..> ProductRepository
+    AdminService ..> PharmacyRepository
+    AdminService ..> PromotionRepository
+    AdminService ..> UserRepository
+    AdminService ..> OrderRepository
+    AdminOrderService ..> OrderRepository
+    AdminOrderService ..> UserRepository
+    AdminOrderService ..> ProductRepository
+    AdminOrderService ..> PharmacyRepository
+    AdminOrderService ..> NotificationRepository
+    ReportService ..> OrderRepository
+    ReportService ..> ProductRepository
+    ReportService ..> UserRepository
+    ReportService ..> PharmacyRepository
+
+    class OrderBuilder
+    class OrderSubject
+    class StrategyFactory { <<Simple Factory>> }
+    class StateFactory { <<Simple Factory>> }
+    OrderService ..> OrderBuilder : Builder
+    OrderService ..> OrderSubject : Observer
+    OrderService ..> StrategyFactory
+    AdminOrderService ..> StateFactory : State
+    AdminOrderService ..> OrderSubject : Observer
+    ReportService ..> StateFactory
+
+    style OrderService fill:#f8bbd0,stroke:#555,color:#000
+    style OrderBuilder fill:#ffe0b2,stroke:#555,color:#000
+    style OrderSubject fill:#c8e6c9,stroke:#555,color:#000
+    style StrategyFactory fill:#d7ccc8,stroke:#555,color:#000
+    style StateFactory fill:#d7ccc8,stroke:#555,color:#000
 ```
 
 ## 3. GoF-шаблони
@@ -123,7 +282,7 @@ classDiagram
 | **State** | `OrderState` → `New/Processing/Shipped/Reserved/Ready/Completed/CancelledState` | кожен статус замовлення сам визначає, у які статуси можна перейти; адмін-панель не містить `if status == ...` | реалізовано |
 | Decorator | знижки акцій поверх знижки клієнта | зараз береться `max()` двох знижок | опційно |
 
-**Як шаблони працюють разом:** `OrderService` (Facade) отримує запит → `get_strategy` (Factory) обирає стратегію → `OrderBuilder` використовує її для розрахунку → після збереження `OrderSubject` сповіщає observer-ів.
+**Як шаблони працюють разом (клієнт):** `OrderService` (Facade) отримує запит → `get_strategy` (Factory) обирає стратегію → `OrderBuilder` використовує її для розрахунку → після збереження `OrderSubject` сповіщає observer-ів.
 
 У адмін-сценарії **State** працює разом з **Observer**: `AdminOrderService.change_status` перевіряє перехід через `get_state(...).can_move_to(...)`, а після зміни `OrderSubject` розсилає клієнту сповіщення (БД, email, SMS).
 
@@ -151,10 +310,11 @@ stateDiagram-v2
 
 ```mermaid
 flowchart TB
-    UI[static/index.html] --> R[routers/ — HTTP, валідація DTO]
+    UI[frontend/index.html — вітрина] --> R[routers/ — HTTP, валідація DTO]
+    AUI[frontend/admin.html — адмін-панель] --> R
     R --> D[deps.py — Dependency Injection]
     D --> S[services/ — бізнес-логіка]
-    S --> P[patterns.py — Strategy, Builder, Observer]
+    S --> P[patterns.py — Strategy, Builder, Observer, State, Factory]
     S --> Rp[repositories/ — доступ до даних]
     Rp --> M[models.py + SQLite]
     S -. DomainError .-> H[exception handler у main.py]
@@ -203,4 +363,4 @@ flowchart TB
 | PUT/POST | `/admin/users/{id}/loyalty`, `/admin/users/{id}/bonus` | категорія та бонуси клієнта |
 | GET/PUT | `/admin/orders/`, `/admin/orders/{id}/status` | замовлення та зміна статусу (State) |
 
-Усі `/admin/*` вимагають заголовок `X-Admin-Key`. Інтерфейс — `static/admin.html` за адресою `/admin-panel`.
+Усі `/admin/*` вимагають заголовок `X-Admin-Key`. Інтерфейс — `frontend/admin.html` за адресою `/admin-panel`.
